@@ -1,0 +1,5 @@
+# Windows reserved names
+nul
+
+# Claude settings (optional - remove if you want to track)
+.claude/

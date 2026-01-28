@@ -1,0 +1,20 @@
+# Render.com Blueprint for Remote Income Generator
+# Deploy both frontend and backend as a single service
+
+services:
+  # Full-stack service (backend serves frontend)
+  - type: web
+    name: remote-income-generator
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install && npm run build && cd ../frontend && npm install && npm run build && cp -r dist ../backend/
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+    rootDir: .
+    healthCheckPath: /api/health
+    autoDeploy: true

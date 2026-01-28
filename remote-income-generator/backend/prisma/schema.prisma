@@ -1,0 +1,195 @@
+// Prisma schema for Remote Income Generator
+// Features: Auth, Favorites, Resume Optimization, Application Tracking
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User authentication
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  profile          Profile?
+  resumes          Resume[]
+  favoriteJobs     FavoriteJob[]
+  optimizedResumes OptimizedResume[]
+  applications     Application[]
+  coverLetters     CoverLetter[]
+}
+
+// User profile with skills and preferences
+model Profile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  skills          String   // JSON array of skills
+  experienceLevel String?
+  minHourlyRate   Float?
+  preferRemote    Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// Master resume storage
+model Resume {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name            String    // "Master Resume", "Tech Resume", etc.
+  originalText    String    // Extracted text from PDF
+  originalFile    Bytes?    // Original PDF binary (optional)
+  fileName        String?   // Original filename
+
+  // Parsed sections
+  contactInfo     String?   // JSON: name, email, phone, linkedin
+  summary         String?   // Professional summary
+  experience      String?   // JSON array of work experiences
+  education       String?   // JSON array of education
+  skills          String?   // JSON array of skills
+  certifications  String?   // JSON array of certifications
+
+  isPrimary       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  optimizedResumes OptimizedResume[]
+  coverLetters     CoverLetter[]
+}
+
+// Favorited jobs
+model FavoriteJob {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Job details (stored locally since external jobs may disappear)
+  externalId      String?   // Original job ID from source
+  title           String
+  company         String
+  description     String    // Full job description
+  requirements    String?   // JSON array of requirements
+  url             String
+  source          String    // Upwork, Indeed, etc.
+  salary          String?
+  location        String?
+  isRemote        Boolean   @default(true)
+  postedAt        DateTime?
+
+  // Match info
+  matchScore      Float?
+  matchReasons    String?   // JSON array
+
+  // User actions
+  notes           String?
+  priority        Int       @default(0) // 0=normal, 1=high, 2=urgent
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  optimizedResumes OptimizedResume[]
+  applications     Application[]
+  coverLetters     CoverLetter[]
+
+  @@unique([userId, url]) // Prevent duplicate favorites
+}
+
+// AI-optimized resumes for specific jobs
+model OptimizedResume {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  resumeId        String
+  resume          Resume      @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  favoriteJobId   String
+  favoriteJob     FavoriteJob @relation(fields: [favoriteJobId], references: [id], onDelete: Cascade)
+
+  // Optimized content
+  optimizedSummary    String
+  optimizedExperience String    // JSON array - rewritten experience bullets
+  optimizedSkills     String    // JSON array - reordered/highlighted skills
+  fullOptimizedText   String    // Complete optimized resume text
+
+  // ATS analysis
+  atsScore            Float?
+  keywordsMatched     String?   // JSON array of matched keywords
+  keywordsMissing     String?   // JSON array of missing keywords
+  suggestions         String?   // JSON array of improvement suggestions
+
+  // Generation metadata
+  aiModel             String    @default("claude-sonnet-4-20250514")
+  promptVersion       String    @default("v1")
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([resumeId, favoriteJobId]) // One optimized version per job/resume combo
+}
+
+// Cover letters generated for jobs
+model CoverLetter {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  resumeId        String?
+  resume          Resume?     @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  favoriteJobId   String
+  favoriteJob     FavoriteJob @relation(fields: [favoriteJobId], references: [id], onDelete: Cascade)
+
+  content         String      // Full cover letter text
+  tone            String      @default("professional") // professional, enthusiastic, formal
+
+  aiModel         String      @default("claude-sonnet-4-20250514")
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// Application tracking
+model Application {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  favoriteJobId   String
+  favoriteJob     FavoriteJob @relation(fields: [favoriteJobId], references: [id], onDelete: Cascade)
+
+  status          String      @default("favorited") // favorited, optimized, applied, interviewing, offered, rejected, withdrawn
+
+  // Timeline
+  favoritedAt     DateTime    @default(now())
+  optimizedAt     DateTime?
+  appliedAt       DateTime?
+  responseAt      DateTime?
+
+  // Notes and tracking
+  notes           String?
+  resumeUsed      String?     // Which resume version was used
+  coverLetterUsed String?     // Which cover letter was used
+
+  // Response tracking
+  responseType    String?     // email, call, portal
+  interviewDates  String?     // JSON array of interview dates
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([userId, favoriteJobId]) // One application per job per user
+}
