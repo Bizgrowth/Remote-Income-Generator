@@ -27,7 +27,19 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'favorites' | 'profile'>('jobs');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const availableSources = ['RemoteOK', 'WeWorkRemotely', 'Upwork', 'Indeed'];
+  // All job sources: Live scrapers + Curated platform links
+  const availableSources = [
+    // Live scrapers
+    'RemoteOK',
+    'WeWorkRemotely',
+    'Indeed',
+    // Curated platform search links
+    'LinkedIn',
+    'FlexJobs',
+    'Remote.co',
+    'BuiltIn',
+    'Curated',  // Static platforms (Appen, UserTesting, etc.)
+  ];
 
   useEffect(() => {
     fetchProfile().then(p => {
