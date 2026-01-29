@@ -6,6 +6,12 @@ interface FilterPanelProps {
   availableSources: string[];
 }
 
+// Group sources for better organization
+const SOURCE_GROUPS: Record<string, string[]> = {
+  'Job Boards': ['RemoteOK', 'WeWorkRemotely', 'Indeed', 'LinkedIn', 'FlexJobs', 'Remote.co', 'BuiltIn', 'Upwork'],
+  'Platform Categories': ['Testing & Research', 'AI & Automation', 'Advisory & Consulting', 'Freelance'],
+};
+
 export function FilterPanel({ filters, onFiltersChange, availableSources }: FilterPanelProps) {
   const handleSortChange = (sortBy: 'recent' | 'match' | 'salary') => {
     onFiltersChange({ ...filters, sortBy });
@@ -19,8 +25,28 @@ export function FilterPanel({ filters, onFiltersChange, availableSources }: Filt
     onFiltersChange({ ...filters, sources: newSources.length > 0 ? newSources : undefined });
   };
 
+  const handleGroupToggle = (groupSources: string[], selectAll: boolean) => {
+    const currentSources = filters.sources || [];
+    let newSources: string[];
+
+    if (selectAll) {
+      newSources = [...new Set([...currentSources, ...groupSources])];
+    } else {
+      newSources = currentSources.filter(s => !groupSources.includes(s));
+    }
+
+    onFiltersChange({ ...filters, sources: newSources.length > 0 ? newSources : undefined });
+  };
+
   const handleLimitChange = (limit: number) => {
     onFiltersChange({ ...filters, limit });
+  };
+
+  const isSourceActive = (source: string) => !filters.sources || filters.sources.includes(source);
+
+  const isGroupFullySelected = (groupSources: string[]) => {
+    if (!filters.sources) return true;
+    return groupSources.every(s => filters.sources!.includes(s));
   };
 
   return (
@@ -51,24 +77,47 @@ export function FilterPanel({ filters, onFiltersChange, availableSources }: Filt
         </div>
       </div>
 
-      {/* Sources */}
-      <div className="mb-4">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Sources</label>
-        <div className="flex flex-wrap gap-2">
-          {availableSources.map(source => (
-            <button
-              key={source}
-              onClick={() => handleSourceToggle(source)}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                !filters.sources || filters.sources.includes(source)
-                  ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
-                  : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-600'
-              }`}
-            >
-              {source}
-            </button>
-          ))}
-        </div>
+      {/* Sources - Grouped */}
+      <div className="mb-4 space-y-3">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">Filter by Source</label>
+
+        {Object.entries(SOURCE_GROUPS).map(([groupName, groupSources]) => {
+          const availableInGroup = groupSources.filter(s => availableSources.includes(s));
+          if (availableInGroup.length === 0) return null;
+
+          const allSelected = isGroupFullySelected(availableInGroup);
+
+          return (
+            <div key={groupName} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {groupName}
+                </span>
+                <button
+                  onClick={() => handleGroupToggle(availableInGroup, !allSelected)}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  {allSelected ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {availableInGroup.map(source => (
+                  <button
+                    key={source}
+                    onClick={() => handleSourceToggle(source)}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      isSourceActive(source)
+                        ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700'
+                        : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-slate-600'
+                    }`}
+                  >
+                    {source}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Results Limit */}
