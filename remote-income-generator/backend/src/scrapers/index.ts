@@ -1,16 +1,8 @@
-import { Job, ScraperResult, SKILL_KEYWORDS } from '../types';
-import { RemoteOKScraper } from './remoteok';
-import { WeWorkRemotelyScraper } from './weworkremotely';
-import { UpworkScraper } from './upwork';
-import { IndeedScraper } from './indeed';
-import { getCuratedPlatformJobs, SKILL_DISPLAY_NAMES } from './curatedPlatforms';
+import { Job, ScraperResult } from '../types';
+import { getCuratedPlatformJobs, SKILL_DISPLAY_NAMES, SEARCH_PLATFORMS, STATIC_PLATFORMS } from './curatedPlatforms';
 
-const scrapers = [
-  new RemoteOKScraper(),
-  new WeWorkRemotelyScraper(),
-  new UpworkScraper(),
-  new IndeedScraper(),
-];
+// Live scrapers disabled - major job sites block bot requests with 403 errors
+// All platforms now use curated search URLs that users click to search directly
 
 // Map frontend skill names to curated platform skill keys
 function mapSkillsToCuratedKeys(skills: string[]): string[] {
@@ -86,7 +78,6 @@ export async function scrapeAllSources(
   limit = 50
 ): Promise<{ jobs: Job[]; results: ScraperResult[] }> {
   const results: ScraperResult[] = [];
-  const allJobs: Job[] = [];
 
   // Map skills to curated platform keys
   const curatedSkillKeys = skills && skills.length > 0
@@ -95,49 +86,29 @@ export async function scrapeAllSources(
 
   console.log(`Getting curated platform jobs for: ${curatedSkillKeys?.join(', ') || 'all categories'}...`);
 
-  // Always get curated platform jobs first (these always work!)
+  // Get curated platform jobs (search URLs + static platform signups)
   const curatedJobs = getCuratedPlatformJobs(curatedSkillKeys);
   console.log(`Curated platforms: found ${curatedJobs.length} job links`);
 
-  allJobs.push(...curatedJobs);
-  results.push({
-    jobs: curatedJobs,
-    source: 'Curated Platforms',
-    scrapedAt: new Date()
-  });
+  // Group results by source for reporting
+  const sourceGroups = new Map<string, Job[]>();
+  for (const job of curatedJobs) {
+    const existing = sourceGroups.get(job.source) || [];
+    existing.push(job);
+    sourceGroups.set(job.source, existing);
+  }
 
-  // Also try the live scrapers (may or may not work depending on IP)
-  const keywords = skills && skills.length > 0
-    ? extractKeywordsFromSkills(skills)
-    : [];
-
-  if (keywords.length > 0) {
-    console.log(`Also trying live scrapers with keywords: ${keywords.slice(0, 5).join(', ')}...`);
-
-    const scraperPromises = scrapers.map(async scraper => {
-      try {
-        console.log(`Starting ${scraper.name} scraper...`);
-        const jobs = await scraper.scrape(keywords);
-        console.log(`${scraper.name}: found ${jobs.length} jobs`);
-
-        if (jobs.length > 0) {
-          results.push({
-            jobs,
-            source: scraper.name,
-            scrapedAt: new Date()
-          });
-          allJobs.push(...jobs);
-        }
-      } catch (error) {
-        console.error(`Scraper ${scraper.name} failed:`, error);
-      }
+  // Create results for each source
+  for (const [source, jobs] of sourceGroups) {
+    results.push({
+      jobs,
+      source,
+      scrapedAt: new Date()
     });
-
-    await Promise.all(scraperPromises);
   }
 
   // Sort by posted date and limit
-  const sortedJobs = allJobs
+  const sortedJobs = curatedJobs
     .sort((a, b) => b.posted.getTime() - a.posted.getTime())
     .slice(0, limit);
 
@@ -146,33 +117,20 @@ export async function scrapeAllSources(
 
 export async function scrapeSource(
   sourceName: string,
-  keywords?: string[]
+  skills?: string[]
 ): Promise<Job[]> {
-  const scraper = scrapers.find(
-    s => s.name.toLowerCase() === sourceName.toLowerCase()
-  );
+  // Get all curated jobs and filter by source
+  const curatedSkillKeys = skills && skills.length > 0
+    ? mapSkillsToCuratedKeys(skills)
+    : undefined;
 
-  if (!scraper) {
-    throw new Error(`Unknown source: ${sourceName}`);
-  }
-
-  return scraper.scrape(keywords);
-}
-
-function extractKeywordsFromSkills(skills: string[]): string[] {
-  const keywords: string[] = [];
-
-  skills.forEach(skill => {
-    const skillKeywords = SKILL_KEYWORDS[skill];
-    if (skillKeywords) {
-      // Take top 3 keywords from each skill category
-      keywords.push(...skillKeywords.slice(0, 3));
-    }
-  });
-
-  return [...new Set(keywords)];
+  const allJobs = getCuratedPlatformJobs(curatedSkillKeys);
+  return allJobs.filter(job => job.source.toLowerCase() === sourceName.toLowerCase());
 }
 
 export function getAvailableSources(): string[] {
-  return scrapers.map(s => s.name);
+  // Return all available sources: search platforms + static platform categories
+  const searchPlatformNames = SEARCH_PLATFORMS.map(p => p.name);
+  const categories = [...new Set(STATIC_PLATFORMS.map(p => p.category))];
+  return [...searchPlatformNames, ...categories];
 }
