@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Use relative /api for both dev (Vite proxy) and prod (same domain)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export interface FavoriteJob {
   id: string;

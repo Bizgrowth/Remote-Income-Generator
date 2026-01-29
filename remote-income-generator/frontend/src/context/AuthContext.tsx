@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Use relative /api for both dev (Vite proxy) and prod (same domain)
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface User {
   id: string;
