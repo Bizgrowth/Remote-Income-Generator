@@ -27,7 +27,7 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'jobs' | 'favorites' | 'profile'>('jobs');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // All job sources: Live scrapers + Curated platform links
+  // All job sources: Live scrapers + Search platforms + Categories
   const availableSources = [
     // Live scrapers
     'RemoteOK',
@@ -38,7 +38,12 @@ export function Dashboard() {
     'FlexJobs',
     'Remote.co',
     'BuiltIn',
-    'Curated',  // Static platforms (Appen, UserTesting, etc.)
+    'Upwork',
+    // Platform categories (static signup pages)
+    'Testing & Research',
+    'AI & Automation',
+    'Advisory & Consulting',
+    'Freelance',
   ];
 
   useEffect(() => {

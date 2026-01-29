@@ -229,7 +229,7 @@ export function getCuratedPlatformJobs(selectedSkills?: string[]): CuratedJob[] 
         id: `static-${idCounter++}`,
         title: platform.title,
         company: 'Platform',
-        source: 'Curated',
+        source: platform.category,  // Use category as source for filtering
         url: platform.url,
         description: platform.description,
         skills: platform.skills,
