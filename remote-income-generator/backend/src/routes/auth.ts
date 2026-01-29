@@ -34,8 +34,14 @@ router.post('/register', async (req: Request, res: Response) => {
       user: result.user,
       token: result.token,
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Registration failed';
+  } catch (error: unknown) {
+    console.error('Registration error:', error);
+    let message = 'Registration failed';
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      message = String((error as { message: unknown }).message);
+    }
     res.status(400).json({ error: message });
   }
 });
@@ -60,8 +66,14 @@ router.post('/login', async (req: Request, res: Response) => {
       user: result.user,
       token: result.token,
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Login failed';
+  } catch (error: unknown) {
+    console.error('Login error:', error);
+    let message = 'Login failed';
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      message = String((error as { message: unknown }).message);
+    }
     res.status(401).json({ error: message });
   }
 });
