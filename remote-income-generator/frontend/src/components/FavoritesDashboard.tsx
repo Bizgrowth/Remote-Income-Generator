@@ -25,7 +25,7 @@ export function FavoritesDashboard() {
     updateFavorite,
     updateStatus,
   } = useFavorites();
-  const { fetchResumes, uploadResume, primaryResume } = useResumes();
+  const { fetchResumes, primaryResume } = useResumes();
   const {
     loading: optimizeLoading,
     optimizeResume,
@@ -127,17 +127,6 @@ export function FavoritesDashboard() {
     }
   };
 
-  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      try {
-        await uploadResume(file, 'My Resume', true);
-      } catch (error) {
-        console.error('Failed to upload resume:', error);
-      }
-    }
-  };
-
   if (!isAuthenticated) {
     return (
       <div className="text-center py-12">
@@ -171,17 +160,10 @@ export function FavoritesDashboard() {
                 </span>
               </div>
             ) : (
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleResumeUpload}
-                  className="hidden"
-                />
-                <span className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700">
-                  Upload Resume
-                </span>
-              </label>
+              <div className="flex items-center gap-2 text-sm text-yellow-600 dark:text-yellow-400">
+                <span>⚠</span>
+                <span>Upload resume in "My Profile" tab to enable optimization</span>
+              </div>
             )}
           </div>
         </div>
@@ -364,25 +346,39 @@ export function FavoritesDashboard() {
                 <div className="text-center py-8">
                   {!primaryResume ? (
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        Please upload a resume first to enable AI optimization
+                      <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        No resume found
                       </p>
-                      <label className="cursor-pointer">
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx,.txt"
-                          onChange={handleResumeUpload}
-                          className="hidden"
-                        />
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                          Upload Resume
-                        </span>
-                      </label>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
+                        Go to the <strong>"My Profile"</strong> tab to upload your resume (PDF, DOCX, or TXT)
+                      </p>
+                      <button
+                        onClick={() => {
+                          setModalType(null);
+                          setSelectedJob(null);
+                        }}
+                        className="px-4 py-2 bg-gray-200 dark:bg-slate-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-slate-500"
+                      >
+                        Close
+                      </button>
                     </div>
                   ) : (
                     <div>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        Our AI expert will tailor your resume for this position
+                      <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        Using: <strong>{primaryResume.name}</strong>
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
+                        Our AI expert (20-year recruiter) will tailor your resume for this position
                       </p>
                       <button
                         onClick={handleOptimize}
