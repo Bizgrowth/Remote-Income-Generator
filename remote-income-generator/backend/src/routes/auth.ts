@@ -6,6 +6,29 @@ import { safeJsonParse } from '../utils/safeJson';
 const router = Router();
 
 /**
+ * GET /api/auth/auto-login
+ * Auto-login for single-user mode (personal app - no registration needed)
+ */
+router.get('/auto-login', async (req: Request, res: Response) => {
+  try {
+    const result = await AuthService.getOrCreateDefaultUser();
+
+    res.json({
+      message: 'Auto-login successful',
+      user: result.user,
+      token: result.token,
+    });
+  } catch (error: unknown) {
+    console.error('Auto-login error:', error);
+    let message = 'Auto-login failed';
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    res.status(500).json({ error: message });
+  }
+});
+
+/**
  * POST /api/auth/register
  * Register a new user
  */

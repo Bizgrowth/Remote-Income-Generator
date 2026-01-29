@@ -26,6 +26,48 @@ export interface AuthResult {
 
 export class AuthService {
   /**
+   * Get or create default user for single-user mode (personal app)
+   */
+  static async getOrCreateDefaultUser(): Promise<AuthResult> {
+    const defaultEmail = 'owner@localhost';
+
+    let user = await prisma.user.findUnique({
+      where: { email: defaultEmail },
+    });
+
+    if (!user) {
+      // Create default user with profile
+      const passwordHash = await bcrypt.hash('not-used-for-auto-login', 12);
+      user = await prisma.user.create({
+        data: {
+          email: defaultEmail,
+          passwordHash,
+          name: 'Owner',
+          profile: {
+            create: {
+              skills: '[]',
+              preferRemote: true,
+            },
+          },
+        },
+      });
+      console.log('Created default user for single-user mode');
+    }
+
+    // Generate long-lived token
+    const token = this.generateToken({ userId: user.id, email: user.email });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+      token,
+    };
+  }
+
+  /**
    * Register a new user
    */
   static async register(email: string, password: string, name?: string): Promise<AuthResult> {

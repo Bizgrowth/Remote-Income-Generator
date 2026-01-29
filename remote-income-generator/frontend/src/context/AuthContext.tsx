@@ -33,14 +33,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing token on mount
+  // Auto-login for single-user mode
+  const autoLogin = async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/auto-login`);
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('auth_token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+      } else {
+        console.error('Auto-login failed:', data.error);
+      }
+    } catch (error) {
+      console.error('Auto-login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Check for existing token on mount, or auto-login
   useEffect(() => {
     const storedToken = localStorage.getItem('auth_token');
     if (storedToken) {
       setToken(storedToken);
       fetchUser(storedToken);
     } else {
-      setIsLoading(false);
+      // No token - auto-login as default user
+      autoLogin();
     }
   }, []);
 
@@ -55,17 +76,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        setIsLoading(false);
       } else {
-        // Token invalid, clear it
+        // Token invalid, auto-login again
         localStorage.removeItem('auth_token');
         setToken(null);
+        autoLogin();
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
       localStorage.removeItem('auth_token');
       setToken(null);
-    } finally {
-      setIsLoading(false);
+      autoLogin();
     }
   };
 
