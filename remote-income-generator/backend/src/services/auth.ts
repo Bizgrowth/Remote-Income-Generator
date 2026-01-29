@@ -2,7 +2,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-in-production';
+// Validate JWT_SECRET in production
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('CRITICAL: JWT_SECRET environment variable is required in production');
+}
+const EFFECTIVE_JWT_SECRET = JWT_SECRET || 'dev-only-fallback-secret-not-for-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface TokenPayload {
@@ -102,7 +107,7 @@ export class AuthService {
    */
   static verifyToken(token: string): TokenPayload {
     try {
-      const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+      const decoded = jwt.verify(token, EFFECTIVE_JWT_SECRET) as TokenPayload;
       return decoded;
     } catch {
       throw new Error('Invalid or expired token');
@@ -113,7 +118,7 @@ export class AuthService {
    * Generate a JWT token
    */
   static generateToken(payload: TokenPayload): string {
-    return jwt.sign(payload, JWT_SECRET, {
+    return jwt.sign(payload, EFFECTIVE_JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN as string,
     } as jwt.SignOptions);
   }

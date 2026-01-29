@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { AuthService } from '../services/auth';
 import { requireAuth } from '../middleware/auth';
+import { safeJsonParse } from '../utils/safeJson';
 
 const router = Router();
 
@@ -73,11 +74,11 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
   try {
     const user = await AuthService.getUserById(req.user!.userId);
 
-    // Parse skills from JSON string
+    // Parse skills from JSON string safely
     const profile = user.profile
       ? {
           ...user.profile,
-          skills: JSON.parse(user.profile.skills || '[]'),
+          skills: safeJsonParse<string[]>(user.profile.skills, []),
         }
       : null;
 
@@ -111,11 +112,11 @@ router.put('/profile', requireAuth, async (req: Request, res: Response) => {
       preferRemote,
     });
 
-    // Parse skills from JSON string
+    // Parse skills from JSON string safely
     const profile = user.profile
       ? {
           ...user.profile,
-          skills: JSON.parse(user.profile.skills || '[]'),
+          skills: safeJsonParse<string[]>(user.profile.skills, []),
         }
       : null;
 

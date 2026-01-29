@@ -1,11 +1,30 @@
 import Anthropic from '@anthropic-ai/sdk';
 import prisma from '../lib/prisma';
+import { extractJsonFromText } from '../utils/safeJson';
+
+// Validate Anthropic API key
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('WARNING: ANTHROPIC_API_KEY not set. AI features will not work.');
+}
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.ANTHROPIC_API_KEY || 'missing-key',
 });
 
 const AI_MODEL = 'claude-sonnet-4-20250514';
+const AI_TIMEOUT_MS = 60000; // 60 second timeout for AI calls
+
+/**
+ * Helper to add timeout to promises
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, operation: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${operation} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
 
 /**
  * Expert Recruiter Persona - 20 Years Experience
@@ -66,14 +85,26 @@ export class AIResumeOptimizer {
    * Analyze a job description to extract key requirements
    */
   static async analyzeJob(jobDescription: string, jobTitle: string): Promise<JobAnalysis> {
-    const response = await anthropic.messages.create({
-      model: AI_MODEL,
-      max_tokens: 2000,
-      system: RECRUITER_PERSONA,
-      messages: [
-        {
-          role: 'user',
-          content: `Analyze this job posting and extract key information for resume optimization.
+    const defaultAnalysis: JobAnalysis = {
+      requiredSkills: [],
+      preferredSkills: [],
+      keyPhrases: [],
+      experienceLevel: 'mid',
+      industryKeywords: [],
+      softSkills: [],
+      technicalRequirements: [],
+    };
+
+    try {
+      const response = await withTimeout(
+        anthropic.messages.create({
+          model: AI_MODEL,
+          max_tokens: 2000,
+          system: RECRUITER_PERSONA,
+          messages: [
+            {
+              role: 'user',
+              content: `Analyze this job posting and extract key information for resume optimization.
 
 Job Title: ${jobTitle}
 
@@ -92,20 +123,21 @@ Return a JSON object with:
 }
 
 Be thorough - extract EVERY keyword and phrase that an ATS might look for.`,
-        },
-      ],
-    });
+            },
+          ],
+        }),
+        AI_TIMEOUT_MS,
+        'Job analysis'
+      );
 
-    const text =
-      response.content[0].type === 'text' ? response.content[0].text : '';
+      const text =
+        response.content[0]?.type === 'text' ? response.content[0].text : '';
 
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Failed to parse job analysis');
+      return extractJsonFromText<JobAnalysis>(text, defaultAnalysis);
+    } catch (error) {
+      console.error('AI job analysis error:', error instanceof Error ? error.message : error);
+      throw new Error('Failed to analyze job. Please try again.');
     }
-
-    return JSON.parse(jsonMatch[0]);
   }
 
   /**

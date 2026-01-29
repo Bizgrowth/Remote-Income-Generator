@@ -15,16 +15,33 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// CORS configuration
+// Validate required env vars in production
+if (isProduction && !process.env.FRONTEND_URL) {
+  console.error('WARNING: FRONTEND_URL not set in production. CORS will be restrictive.');
+}
+
+// CORS configuration - NEVER allow '*' in production
 const corsOrigins = isProduction
-  ? [process.env.FRONTEND_URL || '*']
+  ? (process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [])
   : ['http://localhost:5173', 'http://localhost:3000'];
 
 app.use(cors({
-  origin: corsOrigins,
+  origin: corsOrigins.length > 0 ? corsOrigins : false,
   credentials: true
 }));
-app.use(express.json());
+
+// Parse JSON with size limit for security
+app.use(express.json({ limit: '10mb' }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+  });
+  next();
+});
 
 // Initialize database
 initDatabase();
