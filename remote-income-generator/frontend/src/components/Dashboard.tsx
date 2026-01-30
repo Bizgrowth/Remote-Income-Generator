@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useJobs, useProfile } from '../hooks/useJobs';
-import { useFavorites } from '../hooks/useFavorites';
+import { useFavorites, useResumes } from '../hooks/useFavorites';
 import { useAuth } from '../context/AuthContext';
 import { SearchFilters, Job } from '../types';
 import { SkillsInput } from './SkillsInput';
-import { FileUpload } from './FileUpload';
 import { FilterPanel } from './FilterPanel';
 import { JobList } from './JobList';
 import { FavoritesDashboard } from './FavoritesDashboard';
@@ -13,10 +12,13 @@ import { useTheme } from '../context/ThemeContext';
 
 export function Dashboard() {
   const { jobs, loading, error, fetchRecentJobs, searchJobs, refreshJobs } = useJobs();
-  const { profile, fetchProfile, updateProfile, uploadDocument } = useProfile();
+  const { profile, fetchProfile, updateProfile } = useProfile();
   const { user, isAuthenticated, logout } = useAuth();
   const { favorites, fetchFavorites, addFavorite, removeFavorite, isFavorited, getFavoriteByUrl } = useFavorites();
+  const { fetchResumes, uploadResume, deleteResume, primaryResume } = useResumes();
   const { darkMode, toggleDarkMode } = useTheme();
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [filters, setFilters] = useState<SearchFilters>({
@@ -53,7 +55,10 @@ export function Dashboard() {
       }
     });
     fetchRecentJobs();
-  }, []);
+    if (isAuthenticated) {
+      fetchResumes();
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -284,6 +289,94 @@ export function Dashboard() {
           <FavoritesDashboard />
         ) : (
           <div className="max-w-2xl mx-auto space-y-6">
+            {/* Resume Upload Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow dark:shadow-slate-700/50 p-6 border border-transparent dark:border-slate-700 transition-colors">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">My Resume</h2>
+
+              {primaryResume ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-medium text-green-800 dark:text-green-300">{primaryResume.fileName}</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          Ready for optimization
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteResume(primaryResume.id)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Go to <strong>My Favorites</strong> tab, save a job, then click <strong>Optimize</strong> to tailor your resume for that position.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Upload your resume to enable AI-powered optimization for job applications
+                  </p>
+
+                  <input
+                    type="file"
+                    id="resume-upload"
+                    accept=".pdf,.txt,.doc,.docx"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploading(true);
+                      setUploadError(null);
+                      try {
+                        await uploadResume(file, file.name, true);
+                      } catch (err) {
+                        setUploadError(err instanceof Error ? err.message : 'Failed to upload resume');
+                      } finally {
+                        setUploading(false);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+
+                  <button
+                    onClick={() => document.getElementById('resume-upload')?.click()}
+                    disabled={uploading}
+                    className="w-full px-4 py-4 border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex flex-col items-center gap-2"
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Click to upload resume</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">PDF, DOC, DOCX, or TXT</span>
+                      </>
+                    )}
+                  </button>
+
+                  {uploadError && (
+                    <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded text-sm">
+                      {uploadError}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Profile Section */}
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow dark:shadow-slate-700/50 p-6 border border-transparent dark:border-slate-700 transition-colors">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Profile Settings</h2>
@@ -326,9 +419,6 @@ export function Dashboard() {
               selectedSkills={selectedSkills}
               onSkillsChange={handleSkillsChange}
             />
-
-            {/* File Upload */}
-            <FileUpload onUpload={uploadDocument} />
           </div>
         )}
       </main>

@@ -23,7 +23,6 @@ export function FavoritesDashboard() {
     fetchFavorites,
     removeFavorite,
     updateFavorite,
-    updateStatus,
   } = useFavorites();
   const { fetchResumes, primaryResume } = useResumes();
   const {
@@ -116,14 +115,6 @@ export function FavoritesDashboard() {
       setEditingNotes(null);
     } catch (error) {
       console.error('Failed to save notes:', error);
-    }
-  };
-
-  const handleStatusChange = async (jobId: string, newStatus: string) => {
-    try {
-      await updateStatus(jobId, newStatus);
-    } catch (error) {
-      console.error('Failed to update status:', error);
     }
   };
 
@@ -235,32 +226,21 @@ export function FavoritesDashboard() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Status Dropdown */}
-                  <select
-                    value={job.application?.status || 'favorited'}
-                    onChange={(e) => handleStatusChange(job.id, e.target.value)}
-                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-gray-700 dark:text-gray-300"
-                  >
-                    <option value="favorited">Saved</option>
-                    <option value="optimized">Optimized</option>
-                    <option value="applied">Applied</option>
-                    <option value="interviewing">Interviewing</option>
-                    <option value="offered">Offered</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="withdrawn">Withdrawn</option>
-                  </select>
-
-                  {/* Actions */}
+                  {/* Optimize Button */}
                   <button
                     onClick={() => handleViewOptimized(job)}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      job.hasOptimizedResume
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                   >
-                    {job.hasOptimizedResume ? 'View' : 'Optimize'}
+                    {job.hasOptimizedResume ? 'View Optimized Resume' : 'Optimize Resume'}
                   </button>
                   <button
                     onClick={() => removeFavorite(job.id)}
-                    className="p-1 text-gray-400 hover:text-red-500"
-                    title="Remove"
+                    className="p-2 text-gray-400 hover:text-red-500 rounded"
+                    title="Remove from favorites"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
