@@ -7,7 +7,54 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 const router = Router();
 
-// All routes require authentication
+/**
+ * GET /api/optimize/test-ai
+ * Test endpoint to verify Anthropic API connectivity (no auth required for debugging)
+ */
+router.get('/test-ai', async (_req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'ANTHROPIC_API_KEY is not configured'
+      });
+    }
+
+    // Try to make a minimal API call
+    const Anthropic = require('@anthropic-ai/sdk').default;
+    const anthropic = new Anthropic({ apiKey });
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 50,
+      messages: [{ role: 'user', content: 'Say "API working" in exactly 2 words.' }]
+    });
+
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : 'No response';
+
+    res.json({
+      success: true,
+      message: 'Anthropic API is working',
+      apiKeyConfigured: true,
+      apiKeyPrefix: apiKey.substring(0, 15) + '...',
+      model: 'claude-3-5-sonnet-20241022',
+      testResponse: text.trim()
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('AI test error:', error);
+    res.status(500).json({
+      success: false,
+      error: errorMessage,
+      apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
+      hint: 'Check if the API key is valid and has access to Claude models'
+    });
+  }
+});
+
+// All routes below require authentication
 router.use(requireAuth);
 
 /**
@@ -578,51 +625,5 @@ router.get('/:favoriteJobId/export/txt', async (req: Request, res: Response) => 
   }
 });
 
-/**
- * GET /api/optimize/test-ai
- * Test endpoint to verify Anthropic API connectivity (no auth required for debugging)
- */
-router.get('/test-ai', async (_req: Request, res: Response) => {
-  try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-
-    if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        error: 'ANTHROPIC_API_KEY is not configured'
-      });
-    }
-
-    // Try to make a minimal API call
-    const Anthropic = require('@anthropic-ai/sdk').default;
-    const anthropic = new Anthropic({ apiKey });
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 50,
-      messages: [{ role: 'user', content: 'Say "API working" in exactly 2 words.' }]
-    });
-
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : 'No response';
-
-    res.json({
-      success: true,
-      message: 'Anthropic API is working',
-      apiKeyConfigured: true,
-      apiKeyPrefix: apiKey.substring(0, 15) + '...',
-      model: 'claude-3-5-sonnet-20241022',
-      testResponse: text.trim()
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('AI test error:', error);
-    res.status(500).json({
-      success: false,
-      error: errorMessage,
-      apiKeyConfigured: !!process.env.ANTHROPIC_API_KEY,
-      hint: 'Check if the API key is valid and has access to Claude models'
-    });
-  }
-});
-
 export default router;
+
