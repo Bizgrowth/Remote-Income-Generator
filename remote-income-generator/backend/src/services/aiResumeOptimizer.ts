@@ -5,13 +5,16 @@ import { extractJsonFromText } from '../utils/safeJson';
 // Validate Anthropic API key
 if (!process.env.ANTHROPIC_API_KEY) {
   console.warn('WARNING: ANTHROPIC_API_KEY not set. AI features will not work.');
+} else {
+  console.log('ANTHROPIC_API_KEY is configured (starts with:', process.env.ANTHROPIC_API_KEY.substring(0, 10) + '...)');
 }
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'missing-key',
 });
 
-const AI_MODEL = 'claude-sonnet-4-20250514';
+// Use a valid Claude model - claude-3-5-sonnet is the latest stable Sonnet
+const AI_MODEL = 'claude-3-5-sonnet-20241022';
 const AI_TIMEOUT_MS = 60000; // 60 second timeout for AI calls
 
 /**
@@ -135,7 +138,11 @@ Be thorough - extract EVERY keyword and phrase that an ATS might look for.`,
 
       return extractJsonFromText<JobAnalysis>(text, defaultAnalysis);
     } catch (error) {
-      console.error('AI job analysis error:', error instanceof Error ? error.message : error);
+      console.error('AI job analysis error:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
       throw new Error('Failed to analyze job. Please try again.');
     }
   }

@@ -1,0 +1,29 @@
+John Smith
+Software Engineer | AI Specialist
+john.smith@email.com | (555) 123-4567
+
+PROFESSIONAL SUMMARY
+Experienced software engineer with 8+ years of experience in AI, machine learning, and automation. Skilled in Python, JavaScript, and cloud technologies.
+
+SKILLS
+- AI & Machine Learning
+- Python, JavaScript, TypeScript
+- AWS, GCP, Azure
+- Data Analysis
+- Prompt Engineering
+- No-code Automation (Zapier, Make.com)
+
+EXPERIENCE
+Senior Software Engineer | Tech Company Inc. | 2020 - Present
+- Led development of AI-powered automation tools
+- Implemented machine learning models for data analysis
+- Managed team of 5 developers
+
+Software Engineer | StartupXYZ | 2016 - 2020
+- Built web applications using React and Node.js
+- Developed API integrations and automation workflows
+- Improved system performance by 40%
+
+EDUCATION
+Bachelor of Science in Computer Science
+State University | 2016
