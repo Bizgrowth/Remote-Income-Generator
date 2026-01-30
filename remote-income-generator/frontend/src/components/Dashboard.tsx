@@ -13,7 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 export function Dashboard() {
   const { jobs, loading, error, fetchRecentJobs, searchJobs, refreshJobs } = useJobs();
   const { profile, fetchProfile, updateProfile } = useProfile();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
   const { favorites, fetchFavorites, addFavorite, removeFavorite, isFavorited, getFavoriteByUrl } = useFavorites();
   const { fetchResumes, uploadResume, deleteResume, primaryResume } = useResumes();
   const { darkMode, toggleDarkMode } = useTheme();
@@ -293,7 +293,19 @@ export function Dashboard() {
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow dark:shadow-slate-700/50 p-6 border border-transparent dark:border-slate-700 transition-colors">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">My Resume</h2>
 
-              {primaryResume ? (
+              {authLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                  <span className="ml-3 text-gray-600 dark:text-gray-400">Loading...</span>
+                </div>
+              ) : !isAuthenticated ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Please wait while we set up your account...
+                  </p>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 dark:border-blue-400 mx-auto"></div>
+                </div>
+              ) : primaryResume ? (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                     <div className="flex items-center gap-3">
