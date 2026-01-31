@@ -13,8 +13,8 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'missing-key',
 });
 
-// Use a valid Claude model - claude-3-5-sonnet is the latest stable Sonnet
-const AI_MODEL = 'claude-3-5-sonnet-20241022';
+// Use Claude Sonnet 4.5 - latest available model in 2026
+const AI_MODEL = 'claude-sonnet-4-20250514';
 const AI_TIMEOUT_MS = 60000; // 60 second timeout for AI calls
 
 /**
