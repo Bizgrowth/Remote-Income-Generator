@@ -114,7 +114,7 @@ export function FavoritesDashboard() {
 
     try {
       const url = getExportUrl(selectedJob.id, format);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
 
       const response = await fetch(url, {
         headers: {
