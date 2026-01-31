@@ -109,6 +109,38 @@ export function FavoritesDashboard() {
     }
   };
 
+  const handleDownload = async (format: 'pdf' | 'docx' | 'txt') => {
+    if (!selectedJob) return;
+
+    try {
+      const url = getExportUrl(selectedJob.id, format);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download ${format.toUpperCase()}`);
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `optimized-resume-${selectedJob.company.replace(/\s+/g, '-')}-${Date.now()}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert(`Failed to download ${format.toUpperCase()} file. Please try again.`);
+    }
+  };
+
   const handleSaveNotes = async (jobId: string) => {
     try {
       await updateFavorite(jobId, { notes: notesText });
@@ -171,11 +203,10 @@ export function FavoritesDashboard() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === tab.id
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-            }`}
+            className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === tab.id
+              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
           >
             {tab.label} ({tab.count})
           </button>
@@ -229,11 +260,10 @@ export function FavoritesDashboard() {
                   {/* Optimize Button */}
                   <button
                     onClick={() => handleViewOptimized(job)}
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      job.hasOptimizedResume
-                        ? 'bg-green-600 hover:bg-green-700 text-white'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                    }`}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${job.hasOptimizedResume
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
                   >
                     {job.hasOptimizedResume ? 'View Optimized Resume' : 'Optimize Resume'}
                   </button>
@@ -403,6 +433,45 @@ export function FavoritesDashboard() {
                           </span>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Download Buttons */}
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 p-4 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="font-medium text-gray-900 dark:text-white">Download Your Optimized Resume</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Ready to apply! Choose your preferred format</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleDownload('pdf')}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => handleDownload('docx')}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        DOCX
+                      </button>
+                      <button
+                        onClick={() => handleDownload('txt')}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        TXT
+                      </button>
                     </div>
                   </div>
 
