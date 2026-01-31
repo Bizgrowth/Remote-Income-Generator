@@ -8,11 +8,25 @@ export interface ParsedDocument {
   experienceLevel?: string;
 }
 
+/**
+ * Sanitize text to remove null bytes and other characters that PostgreSQL doesn't support
+ * in TEXT columns
+ */
+function sanitizeText(text: string): string {
+  if (!text) return '';
+
+  // Remove null bytes (0x00) and other control characters except newlines/tabs
+  return text
+    .replace(/\0/g, '') // Remove null bytes
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove other control chars except \n \r \t
+    .trim();
+}
+
 export async function parsePDF(filePath: string): Promise<ParsedDocument> {
   const dataBuffer = fs.readFileSync(filePath);
   const data = await pdf(dataBuffer);
 
-  const text = data.text;
+  const text = sanitizeText(data.text);
   const extractedSkills = extractSkillsFromText(text);
   const experienceLevel = detectExperienceLevel(text);
 
@@ -64,7 +78,8 @@ function detectExperienceLevel(text: string): string {
 }
 
 export async function parseTextDocument(filePath: string): Promise<ParsedDocument> {
-  const text = fs.readFileSync(filePath, 'utf-8');
+  const rawText = fs.readFileSync(filePath, 'utf-8');
+  const text = sanitizeText(rawText);
   const extractedSkills = extractSkillsFromText(text);
   const experienceLevel = detectExperienceLevel(text);
 
