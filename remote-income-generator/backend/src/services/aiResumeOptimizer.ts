@@ -175,10 +175,10 @@ Company: ${company}
 Description: ${jobDescription}
 
 KEY REQUIREMENTS IDENTIFIED:
-Required Skills: ${jobAnalysis.requiredSkills.join(', ')}
-Preferred Skills: ${jobAnalysis.preferredSkills.join(', ')}
-Key Phrases to Include: ${jobAnalysis.keyPhrases.join(', ')}
-Technical Requirements: ${jobAnalysis.technicalRequirements.join(', ')}
+Required Skills: ${(jobAnalysis.requiredSkills || []).join(', ')}
+Preferred Skills: ${(jobAnalysis.preferredSkills || []).join(', ')}
+Key Phrases to Include: ${(jobAnalysis.keyPhrases || []).join(', ')}
+Technical Requirements: ${(jobAnalysis.technicalRequirements || []).join(', ')}
 
 CURRENT RESUME:
 ${resumeText}
@@ -218,21 +218,39 @@ CRITICAL: Only include skills and experience the candidate actually has. Enhance
     const text =
       response.content[0].type === 'text' ? response.content[0].text : '';
 
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Failed to parse optimized resume');
+    try {
+      // Extract JSON from response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('AI Response parsing failed - no JSON found in response:');
+        console.error('Response text:', text.substring(0, 500)); // Log first 500 chars
+        throw new Error('Failed to parse optimized resume - AI did not return JSON');
+      }
+
+      const result = JSON.parse(jsonMatch[0]);
+
+      // Validate required fields
+      if (!result.optimizedSummary || !result.optimizedExperience || !result.optimizedSkills) {
+        console.error('AI Response missing required fields:', {
+          hasSummary: !!result.optimizedSummary,
+          hasExperience: !!result.optimizedExperience,
+          hasSkills: !!result.optimizedSkills,
+        });
+        throw new Error('AI response missing required fields');
+      }
+
+      // Generate full text version
+      const fullText = this.generateFullResumeText(result);
+
+      return {
+        ...result,
+        fullOptimizedText: fullText,
+      };
+    } catch (error) {
+      console.error('Resume optimization parsing error:', error);
+      console.error('AI response text (first 500 chars):', text.substring(0, 500));
+      throw new Error('Failed to parse optimized resume from AI response');
     }
-
-    const result = JSON.parse(jsonMatch[0]);
-
-    // Generate full text version
-    const fullText = this.generateFullResumeText(result);
-
-    return {
-      ...result,
-      fullOptimizedText: fullText,
-    };
   }
 
   /**
