@@ -427,6 +427,11 @@ Return JSON:
     favoriteJobId: string,
     result: OptimizedResumeResult
   ) {
+    // Validate atsScore - must be a number or null (AI sometimes returns strings on parse errors)
+    const atsScore = typeof result.atsAnalysis?.score === 'number'
+      ? result.atsAnalysis.score
+      : null;
+
     return prisma.optimizedResume.upsert({
       where: {
         resumeId_favoriteJobId: {
@@ -439,10 +444,10 @@ Return JSON:
         optimizedExperience: JSON.stringify(result.optimizedExperience),
         optimizedSkills: JSON.stringify(result.optimizedSkills),
         fullOptimizedText: result.fullOptimizedText,
-        atsScore: result.atsAnalysis.score,
-        keywordsMatched: JSON.stringify(result.atsAnalysis.keywordsMatched),
-        keywordsMissing: JSON.stringify(result.atsAnalysis.keywordsMissing),
-        suggestions: JSON.stringify(result.atsAnalysis.suggestions),
+        atsScore,
+        keywordsMatched: JSON.stringify(result.atsAnalysis.keywordsMatched || []),
+        keywordsMissing: JSON.stringify(result.atsAnalysis.keywordsMissing || []),
+        suggestions: JSON.stringify(result.atsAnalysis.suggestions || []),
         aiModel: AI_MODEL,
         promptVersion: 'v1',
       },
@@ -454,10 +459,10 @@ Return JSON:
         optimizedExperience: JSON.stringify(result.optimizedExperience),
         optimizedSkills: JSON.stringify(result.optimizedSkills),
         fullOptimizedText: result.fullOptimizedText,
-        atsScore: result.atsAnalysis.score,
-        keywordsMatched: JSON.stringify(result.atsAnalysis.keywordsMatched),
-        keywordsMissing: JSON.stringify(result.atsAnalysis.keywordsMissing),
-        suggestions: JSON.stringify(result.atsAnalysis.suggestions),
+        atsScore,
+        keywordsMatched: JSON.stringify(result.atsAnalysis.keywordsMatched || []),
+        keywordsMissing: JSON.stringify(result.atsAnalysis.keywordsMissing || []),
+        suggestions: JSON.stringify(result.atsAnalysis.suggestions || []),
         aiModel: AI_MODEL,
         promptVersion: 'v1',
       },

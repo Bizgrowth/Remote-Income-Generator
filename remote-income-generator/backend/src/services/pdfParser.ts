@@ -1,4 +1,5 @@
 import pdf from 'pdf-parse';
+import mammoth from 'mammoth';
 import fs from 'fs';
 import { SKILL_KEYWORDS } from '../types';
 
@@ -90,6 +91,24 @@ export async function parseTextDocument(filePath: string): Promise<ParsedDocumen
   };
 }
 
+export async function parseDOCX(filePath: string): Promise<ParsedDocument> {
+  try {
+    const result = await mammoth.extractRawText({ path: filePath });
+    const text = sanitizeText(result.value);
+    const extractedSkills = extractSkillsFromText(text);
+    const experienceLevel = detectExperienceLevel(text);
+
+    return {
+      text,
+      extractedSkills,
+      experienceLevel
+    };
+  } catch (error) {
+    console.error('DOCX parsing error:', error);
+    throw new Error('Failed to parse DOCX file');
+  }
+}
+
 export interface ResumeParseResult {
   text: string;
   skills: string[];
@@ -109,19 +128,24 @@ export async function parseResume(filePath: string): Promise<ResumeParseResult> 
     result = await parsePDF(filePath);
   } else if (ext === 'txt') {
     result = await parseTextDocument(filePath);
-  } else if (ext === 'doc' || ext === 'docx') {
-    // For DOC/DOCX, try to read as text (basic support)
-    // In production, use a library like mammoth for better DOCX parsing
+  } else if (ext === 'docx') {
+    // Use mammoth for proper DOCX parsing
     try {
-      result = await parseTextDocument(filePath);
+      result = await parseDOCX(filePath);
     } catch {
-      // If text parsing fails, return empty with error note
       result = {
-        text: '[Unable to parse document - please upload PDF or TXT]',
+        text: '[Unable to parse DOCX - please try PDF or TXT format]',
         extractedSkills: [],
         experienceLevel: 'Not specified',
       };
     }
+  } else if (ext === 'doc') {
+    // Legacy .doc format not supported - recommend conversion
+    result = {
+      text: '[DOC format not supported - please convert to DOCX or PDF]',
+      extractedSkills: [],
+      experienceLevel: 'Not specified',
+    };
   } else {
     throw new Error(`Unsupported file type: ${ext}`);
   }
